@@ -17,8 +17,13 @@ const 主選單鍵盤 = {
     keyboard: [
       ['練功', '江湖歷練'],
       ['門派任務', '拜師'],
+      ['比武', '切磋'],
+      ['試煉', '藏寶閣'],
+      ['強化坊', '合成'],
+      ['藥鋪', '簽到'],
+      ['轉世', '排行'],
       ['狀態', '稱號'],
-      ['藏寶閣'],
+      ['說明'],
     ],
     resize_keyboard: true,
   },
@@ -49,6 +54,43 @@ function 藏寶閣選擇鍵盤() {
   const 排 = [];
   for (let i = 0; i < 名稱清單.length; i += 2) {
     排.push(名稱清單.slice(i, i + 2));
+  }
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
+function 試煉選擇鍵盤() {
+  const 名稱清單 = game.全部BOSS名稱();
+  const 排 = [];
+  for (let i = 0; i < 名稱清單.length; i += 1) {
+    排.push([名稱清單[i]]);
+  }
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
+function 強化坊選擇鍵盤(c) {
+  const 已購 = c.已購裝備 || [];
+  const 排 = 已購.map((名稱) => [`強化 ${名稱}`]);
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
+function 合成選擇鍵盤() {
+  const 名稱清單 = game.全部秘笈名稱();
+  const 排 = [];
+  for (let i = 0; i < 名稱清單.length; i += 1) {
+    排.push([名稱清單[i]]);
+  }
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
+function 藥鋪選擇鍵盤() {
+  const 名稱清單 = game.全部丹藥名稱();
+  const 排 = [];
+  for (let i = 0; i < 名稱清單.length; i += 1) {
+    排.push([名稱清單[i]]);
   }
   排.push(['取消']);
   return { reply_markup: { keyboard: 排, resize_keyboard: true } };
@@ -112,6 +154,39 @@ async function 處理訊息(chatId, 原文) {
     return;
   }
 
+  // 挑戰 BOSS：文字剛好符合試煉清單中的 BOSS 名稱
+  if (game.全部BOSS名稱().includes(text)) {
+    行.push(game.挑戰BOSS(c, text));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
+  // 強化裝備：文字格式為「強化 物品名稱」
+  if (text.startsWith('強化 ')) {
+    const 物品名稱 = text.slice(3).trim();
+    行.push(game.強化裝備(c, 物品名稱));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
+  // 合成秘笈：文字剛好符合秘笈清單中的名稱
+  if (game.全部秘笈名稱().includes(text)) {
+    行.push(game.合成秘笈(c, text));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
+  // 服用丹藥：文字剛好符合藥鋪清單中的名稱
+  if (game.全部丹藥名稱().includes(text)) {
+    行.push(game.購買並服用(c, text));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
   switch (text) {
     case '練功':
       行.push(game.練功(c));
@@ -168,8 +243,66 @@ async function 處理訊息(chatId, 原文) {
       await store.寫入角色(chatId, c);
       await 回覆(chatId, 行, 藏寶閣選擇鍵盤());
       break;
+    case '比武':
+      行.push(game.比武(c));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
+    case '切磋': {
+      const 對手 = await store.讀取隨機對手(chatId);
+      if (!對手) {
+        行.push('江湖上暫無其他同道可供切磋，稍後再來試試！');
+      } else {
+        行.push(game.對戰計算(c, 對手));
+      }
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
+    }
+    case '試煉':
+      行.push('江湖上流傳著幾位深藏不露的絕頂高手：', '', game.試煉清單文字(c), '', '請選擇要挑戰的對象：');
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 試煉選擇鍵盤());
+      break;
+    case '強化坊':
+      行.push('強化坊內爐火熊熊，可將已擁有的裝備繼續打磨：', '', game.強化坊清單文字(c));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 強化坊選擇鍵盤(c));
+      break;
+    case '合成':
+      行.push('你翻開懷中蒐集的殘篇，比對缺漏之處：', '', game.殘篇清單文字(c), '', '殘篇集滿後，選擇秘笈名稱即可合成：');
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 合成選擇鍵盤());
+      break;
+    case '簽到':
+      行.push(game.簽到(c));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
+    case '轉世':
+      行.push(game.轉世(c));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
+    case '藥鋪':
+      行.push('藥鋪內丹藥琳瑯滿目：', '', game.藥鋪清單文字(), '', '請選擇要購買服用的丹藥：');
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 藥鋪選擇鍵盤());
+      break;
+    case '排行': {
+      const 全部角色 = await store.讀取全部角色();
+      行.push('江湖排行榜（依戰力排序）：', '', game.排行榜文字(全部角色, chatId));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
+    }
+    case '說明':
+      行.push(game.說明文字());
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
     default:
-      行.push('請用下方按鈕操作：練功 / 江湖歷練 / 門派任務 / 拜師 / 狀態 / 稱號 / 藏寶閣');
+      行.push('請用下方按鈕操作，或按「說明」查看完整系統介紹。');
       await store.寫入角色(chatId, c);
       await 回覆(chatId, 行);
   }
