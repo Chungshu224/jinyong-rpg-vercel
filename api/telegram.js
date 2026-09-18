@@ -18,6 +18,7 @@ const 主選單鍵盤 = {
       ['練功', '江湖歷練'],
       ['門派任務', '拜師'],
       ['狀態', '稱號'],
+      ['藏寶閣'],
     ],
     resize_keyboard: true,
   },
@@ -38,6 +39,16 @@ function 稱號選擇鍵盤(c) {
   const 排 = [];
   for (let i = 0; i < 清單.length; i += 2) {
     排.push(清單.slice(i, i + 2));
+  }
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
+function 藏寶閣選擇鍵盤() {
+  const 名稱清單 = game.全部裝備名稱();
+  const 排 = [];
+  for (let i = 0; i < 名稱清單.length; i += 2) {
+    排.push(名稱清單.slice(i, i + 2));
   }
   排.push(['取消']);
   return { reply_markup: { keyboard: 排, resize_keyboard: true } };
@@ -88,6 +99,14 @@ async function 處理訊息(chatId, 原文) {
   // 佩戴/卸下稱號：文字剛好符合已擁有稱號或「無」
   if ((c.已獲稱號 || []).includes(text) || text === '無') {
     行.push(game.換稱號(c, text));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
+  // 購買/裝備：文字剛好符合藏寶閣裡的裝備名稱
+  if (game.全部裝備名稱().includes(text)) {
+    行.push(game.購買或裝備(c, text));
     await store.寫入角色(chatId, c);
     await 回覆(chatId, 行);
     return;
@@ -144,8 +163,13 @@ async function 處理訊息(chatId, 原文) {
       }
       break;
     }
+    case '藏寶閣':
+      行.push('藏寶閣中陳列著各方奇珍異寶：', '', game.藏寶閣清單文字(c), '', '請選擇要購買/裝備的物品：');
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 藏寶閣選擇鍵盤());
+      break;
     default:
-      行.push('請用下方按鈕操作：練功 / 江湖歷練 / 門派任務 / 拜師 / 狀態 / 稱號');
+      行.push('請用下方按鈕操作：練功 / 江湖歷練 / 門派任務 / 拜師 / 狀態 / 稱號 / 藏寶閣');
       await store.寫入角色(chatId, c);
       await 回覆(chatId, 行);
   }
