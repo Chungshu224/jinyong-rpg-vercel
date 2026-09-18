@@ -1,0 +1,9 @@
+{
+  "name": "jinyong-rpg-vercel",
+  "version": "0.1.0",
+  "description": "文字型金庸風放置RPG - Vercel Webhook 版",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
