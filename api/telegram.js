@@ -15,6 +15,7 @@ const bot = new TelegramBot(TOKEN);
 const 主選單鍵盤 = {
   reply_markup: {
     keyboard: [
+      ['探索', '副本'],
       ['練功', '江湖歷練'],
       ['門派任務', '拜師'],
       ['比武', '切磋'],
@@ -88,6 +89,16 @@ function 合成選擇鍵盤() {
 
 function 藥鋪選擇鍵盤() {
   const 名稱清單 = game.全部丹藥名稱();
+  const 排 = [];
+  for (let i = 0; i < 名稱清單.length; i += 1) {
+    排.push([名稱清單[i]]);
+  }
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
+function 副本選擇鍵盤() {
+  const 名稱清單 = game.全部副本名稱();
   const 排 = [];
   for (let i = 0; i < 名稱清單.length; i += 1) {
     排.push([名稱清單[i]]);
@@ -187,7 +198,25 @@ async function 處理訊息(chatId, 原文) {
     return;
   }
 
+  // 推進故事副本：文字剛好符合副本清單中的小說名稱
+  if (game.全部副本名稱().includes(text)) {
+    行.push(game.推進副本(c, text));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
   switch (text) {
+    case '探索':
+      行.push(game.探索(c));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+      break;
+    case '副本':
+      行.push('江湖上流傳著幾部奇書異聞，各自藏著一段傳奇故事：', '', game.副本總覽文字(c), '', '請選擇要查看/推進的故事：');
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 副本選擇鍵盤());
+      break;
     case '練功':
       行.push(game.練功(c));
       await store.寫入角色(chatId, c);
@@ -249,12 +278,14 @@ async function 處理訊息(chatId, 原文) {
       await 回覆(chatId, 行);
       break;
     case '切磋': {
-      const 對手 = await store.讀取隨機對手(chatId);
+      let 對手 = await store.讀取隨機對手(chatId);
+      let 模擬 = false;
       if (!對手) {
-        行.push('江湖上暫無其他同道可供切磋，稍後再來試試！');
-      } else {
-        行.push(game.對戰計算(c, 對手));
+        對手 = game.生成模擬玩家對手(game.戰力(c));
+        模擬 = true;
       }
+      if (模擬) 行.push('江湖上暫無其他真人玩家在線，先讓你和一位江湖路人過過招：');
+      行.push(game.對戰計算(c, 對手));
       await store.寫入角色(chatId, c);
       await 回覆(chatId, 行);
       break;
