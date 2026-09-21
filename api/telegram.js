@@ -61,7 +61,7 @@ function 藏寶閣選擇鍵盤() {
 }
 
 function 藏寶閣分類鍵盤() {
-  return { reply_markup: { keyboard: [['武器', '防具'], ['飾品'], ['取消']], resize_keyboard: true } };
+  return { reply_markup: { keyboard: [['武器', '防具'], ['護膝', '鞋子'], ['飾品'], ['取消']], resize_keyboard: true } };
 }
 
 function 兵器類型選擇鍵盤() {
@@ -331,6 +331,8 @@ async function 處理訊息(chatId, 原文) {
       await 回覆(chatId, 行, 兵器類型選擇鍵盤());
       break;
     case '防具':
+    case '護膝':
+    case '鞋子':
     case '飾品':
       行.push(`【${text}】`, game.裝備分類清單文字(c, text, null));
       await store.寫入角色(chatId, c);
