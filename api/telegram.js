@@ -117,6 +117,13 @@ function 藥鋪選擇鍵盤() {
   return { reply_markup: { keyboard: 排, resize_keyboard: true } };
 }
 
+function 洗髓丹選擇鍵盤(c) {
+  const 名稱清單 = game.已裝備清單(c);
+  const 排 = 名稱清單.map((名) => [`洗髓:${名}`]);
+  排.push(['取消']);
+  return { reply_markup: { keyboard: 排, resize_keyboard: true } };
+}
+
 function 副本選擇鍵盤() {
   const 名稱清單 = game.全部副本名稱();
   const 排 = [];
@@ -238,6 +245,27 @@ async function 處理訊息(chatId, 原文) {
   // 合成秘笈：文字剛好符合秘笈清單中的名稱
   if (game.全部秘笈名稱().includes(text)) {
     行.push(game.合成秘笈(c, text));
+    await store.寫入角色(chatId, c);
+    await 回覆(chatId, 行);
+    return;
+  }
+
+  // 洗髓丹：需另外指定要重骰的已裝備物品，優先於一般丹藥服用流程攔截
+  if (text === '洗髓丹') {
+    const 已裝備 = game.已裝備清單(c);
+    if (已裝備.length === 0) {
+      行.push('你目前身上沒有任何已裝備的物品，請先到「藏寶閣」裝備後再使用洗髓丹。');
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行);
+    } else {
+      行.push('洗髓丹（300 銀兩）— 選定一件已裝備物品，重新擲一次品質詞綴：', '', 已裝備.join('、'));
+      await store.寫入角色(chatId, c);
+      await 回覆(chatId, 行, 洗髓丹選擇鍵盤(c));
+    }
+    return;
+  }
+  if (text.startsWith('洗髓:')) {
+    行.push(game.服用洗髓丹(c, text.slice(3).trim()));
     await store.寫入角色(chatId, c);
     await 回覆(chatId, 行);
     return;
