@@ -341,8 +341,8 @@ async function 處理訊息(chatId, 原文) {
         await store.寫入角色(chatId, c);
         await 回覆(chatId, 行);
       } else {
-        const 目前 = c.目前稱號 ? `目前佩戴：「${c.目前稱號}」` : '目前未佩戴稱號';
-        行.push(`${目前}\n\n已擁有稱號：\n${擁有.map((t) => `・${t}`).join('\n')}\n\n請選擇要佩戴的稱號（「無」為卸下）：`);
+        const 目前 = c.目前稱號 ? `目前佩戴：「${c.目前稱號}」（${game.稱號屬性文字(c.目前稱號)}）` : '目前未佩戴稱號';
+        行.push(`${目前}\n\n已擁有稱號（只有佩戴中的稱號生效）：\n${擁有.map((t) => `・${t}：${game.稱號屬性文字(t)}`).join('\n')}\n\n請選擇要佩戴的稱號（「無」為卸下）：`);
         await store.寫入角色(chatId, c);
         await 回覆(chatId, 行, 稱號選擇鍵盤(c));
       }
